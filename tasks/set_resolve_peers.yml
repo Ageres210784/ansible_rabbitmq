@@ -1,0 +1,15 @@
+---
+- name: Set resolve peer
+  set_fact:
+    rabbitmq_resolve_peer: "{{ rabbitmq_hostname }}:{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}"
+
+- name: Set resolve peers list
+  set_fact:
+    rabbitmq_resolve_peers: "{{ rabbitmq_resolve_peers | default([]) + hostvars[item].rabbitmq_resolve_peer }}"
+  loop: "{{ rabbitmq_nodes_list }}"
+  when:
+    - item != inventory_hostname
+
+- debug:
+    var: rabbitmq_resolve_peers
+

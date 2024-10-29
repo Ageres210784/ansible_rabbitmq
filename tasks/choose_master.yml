@@ -1,0 +1,79 @@
+---
+- name: Set list of rabbitmq cluster nodes
+  set_fact:
+    rabbitmq_nodes_list: "{{ rabbitmq_nodes_list | default ([]) + [item] }}"
+  loop: "{{ ansible_play_batch }}"
+  run_once: true
+  when:
+    - hostvars[item].rabbitmq_cluster_node is defined
+    - hostvars[item].rabbitmq_cluster_node
+
+- name: Get info on container
+  community.docker.docker_container_info:
+    name: "{{ rabbitmq_container_name }}"
+  register: rabbitmq_container_info
+
+- name: Set list of nodes with installed rabbitmq
+  set_fact:
+    rabbitmq_installed_nodes_list: "{{ rabbitmq_installed_nodes_list | default ([]) + [item] }}"
+  when:
+    - hostvars[item].rabbitmq_container_info.exists
+  loop: "{{ rabbitmq_nodes_list }}"
+  run_once: true
+
+- name: Container {{ rabbitmq_container_name }} is down
+  debug:
+    msg: Container {{ rabbitmq_container_name }} is down!
+  failed_when: true
+  when:
+    - rabbitmq_container_info.exists
+    - rabbitmq_container_info.container.State.Status != "running"
+
+- name: Set list of nodes with runnning rabbitmq
+  set_fact:
+    rabbitmq_running_nodes_list: "{{ rabbitmq_running_nodes_list | default ([]) + [item] }}"
+  loop: "{{ rabbitmq_installed_nodes_list }}"
+  run_once: true
+  when:
+    - rabbitmq_installed_nodes_list is defined
+    - hostvars[item].rabbitmq_container_info.exists
+    - hostvars[item].rabbitmq_container_info.container.State.Status == "running"
+
+- name: Get info on rabbit cluster
+  community.docker.docker_container_exec:
+    container: "{{ rabbitmq_container_name }}"
+    command: rabbitmqctl cluster_status --formatter json
+  register: rabbitmq_cluster_info
+  changed_when: false
+  when: inventory_hostname in rabbitmq_running_nodes_list | default([])
+
+- name: Set var rabbitmq_cluster_info
+  set_fact:
+    rabbitmq_cluster_info: "{{ rabbitmq_cluster_info.stdout | from_json }}"
+  when: inventory_hostname in rabbitmq_running_nodes_list | default([])
+
+- name: Choose existing cluster master
+  run_once: true
+  set_fact:
+    rabbitmq_master_node: "{{ hostvars[item].rabbitmq_hostname | default(hostvars[item].ansible_facts.hostname)}}"
+  loop: "{{ rabbitmq_running_nodes_list }}"
+  when:
+    - rabbitmq_running_nodes_list is defined
+    - hostvars[item].rabbitmq_cluster_info.disk_nodes is defined
+    - hostvars[item].rabbitmq_cluster_info.disk_nodes | length > 1
+    - rabbitmq_master_node is undefined
+
+- name: Choose new cluster running master
+  run_once: true
+  set_fact:
+    rabbitmq_master_node: "{{ rabbitmq_running_nodes_list[0].rabbitmq_hostname | default(hostvars[rabbitmq_running_nodes_list[0]].ansible_facts.hostname)}}"
+  when:
+    - rabbitmq_running_nodes_list is defined
+    - rabbitmq_master_node is undefined
+
+- name: Choose new cluster master
+  run_once: true
+  set_fact:
+    rabbitmq_master_node: "{{ rabbitmq_nodes_list[0].rabbitmq_hostname | default(hostvars[rabbitmq_nodes_list[0]].ansible_facts.hostname)}}"
+  when:
+    - rabbitmq_master_node is undefined

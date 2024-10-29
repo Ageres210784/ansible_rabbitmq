@@ -1,0 +1,45 @@
+---
+- import_tasks: choose_master.yml
+  when:
+    - rabbitmq_cluster_node
+
+# - import_tasks: set_resolve_peers.yml
+#   when:
+#     - rabbitmq_resolve_peers | length == 0
+#     - rabbitmq_cluster_node
+#     - (rabbitmq_cluster_info is undefined) or (ansible_hostname == rabbitmq_master_node)
+#     - inventory_hostname not in rabbitmq_installed_nodes_list | default([])
+
+- name: Set rabbitmq_cluster_node_name for single master or cluster master node
+  set_fact:
+    rabbitmq_cluster_node_name:
+  when:
+    - (rabbitmq_master_node is undefined) or (rabbitmq_master_node | default("") == inventory_hostname)
+
+- name: Set rabbitmq_cluster_node_name for nodes
+  set_fact:
+    rabbitmq_cluster_node_name: rabbit@{{ hostvars[rabbitmq_master_node].rabbitmq_hostname | default(hostvars[rabbitmq_master_node].ansible_facts.hostname) }}
+  when:
+    - rabbitmq_master_node is defined
+    - rabbitmq_master_node != inventory_hostname
+
+- name: Run rabbitmq master
+  import_tasks: run_container.yml
+  when:
+    - inventory_hostname not in rabbitmq_installed_nodes_list | default([])
+    - rabbitmq_master_node | default("") == inventory_hostname
+
+- name: Wait while master is running
+  community.docker.docker_container_info:
+    name: "{{ rabbitmq_container_name }}"
+  register: rabbitmq_health_status
+  retries: 10
+  delay: 10
+  until: rabbitmq_health_status.container.State.Health.Status == "healthy"
+  when: rabbitmq_master_node | default("") == inventory_hostname
+
+- name: Run rabbitmq
+  import_tasks: run_container.yml
+  when:
+    - inventory_hostname not in rabbitmq_installed_nodes_list | default([])
+    - rabbitmq_master_node | default("") != inventory_hostname

@@ -10,12 +10,6 @@
 #     - (rabbitmq_cluster_info is undefined) or (ansible_hostname == rabbitmq_master_node)
 #     - inventory_hostname not in rabbitmq_installed_nodes_list | default([])
 
-- name: Set rabbitmq_cluster_node_name for single master or cluster master node
-  set_fact:
-    rabbitmq_cluster_node_name:
-  when:
-    - (rabbitmq_master_node is undefined) or (rabbitmq_master_node | default("") == inventory_hostname)
-
 - name: Set rabbitmq_cluster_node_name for nodes
   set_fact:
     rabbitmq_cluster_node_name: rabbit@{{ hostvars[rabbitmq_master_node].rabbitmq_hostname | default(hostvars[rabbitmq_master_node].ansible_facts.hostname) }}

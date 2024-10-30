@@ -3,16 +3,25 @@ rabbitmq_version: latest
 rabbitmq_container_name: rabbitmq
 rabbitmq_image_name: bitnami/rabbitmq:{{ rabbitmq_version }}
 rabbitmq_hostname: "{{ ansible_facts.hostname }}"
+rabbitmq_username: guest
+rabbitmq_password: guest
 rabbitmq_erl_cookie: 123456789
 rabbitmq_node_type: queue-disc
-rabbitmq_cluster_node_name: rabbit@{{ rabbitmq_hostname }}
+rabbitmq_cluster_node_name: # empty because configure in task
+rabbitmq_vhosts: # list of space separated additional virtual host (vhost).
+rabbitmq_server_additional_erl_args:
+rabbitmq_data: rabbitmq_data
 rabbitmq_export_vars:
+  RABBITMQ_USERNAME: "{{ rabbitmq_username }}"
+  RABBITMQ_PASSWORD: "{{ rabbitmq_password }}"
   RABBITMQ_ERL_COOKIE: "{{ rabbitmq_erl_cookie }}"
   RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS: "true"
   RABBITMQ_NODE_NAME: rabbit@{{ rabbitmq_hostname }}
   RABBITMQ_PLUGINS: rabbitmq_prometheus,rabbitmq_management
   RABBITMQ_NODE_TYPE: "{{ rabbitmq_node_type }}"
   RABBITMQ_CLUSTER_NODE_NAME: "{{ rabbitmq_cluster_node_name }}"
+  RABBITMQ_VHOSTS: "{{ rabbitmq_vhosts }}"
+  RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "{{ rabbitmq_server_additional_erl_args }}"
 rabbitmq_expose_ports:
   - 4369:4369
   - 5672:5672

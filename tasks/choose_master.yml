@@ -55,7 +55,7 @@
 - name: Choose existing cluster master
   run_once: true
   set_fact:
-    rabbitmq_master_node: "{{ hostvars[item].rabbitmq_hostname | default(hostvars[item].ansible_facts.hostname)}}"
+    rabbitmq_master_node: "{{ hostvars[item].ansible_facts.hostname }}"
   loop: "{{ rabbitmq_running_nodes_list }}"
   when:
     - rabbitmq_running_nodes_list is defined
@@ -66,7 +66,7 @@
 - name: Choose new cluster running master
   run_once: true
   set_fact:
-    rabbitmq_master_node: "{{ rabbitmq_running_nodes_list[0].rabbitmq_hostname | default(hostvars[rabbitmq_running_nodes_list[0]].ansible_facts.hostname)}}"
+    rabbitmq_master_node: "{{ hostvars[rabbitmq_running_nodes_list[0]].ansible_facts.hostname }}"
   when:
     - rabbitmq_running_nodes_list is defined
     - rabbitmq_master_node is undefined
@@ -74,6 +74,6 @@
 - name: Choose new cluster master
   run_once: true
   set_fact:
-    rabbitmq_master_node: "{{ rabbitmq_nodes_list[0].rabbitmq_hostname | default(hostvars[rabbitmq_nodes_list[0]].ansible_facts.hostname)}}"
+    rabbitmq_master_node: "{{ hostvars[rabbitmq_nodes_list[0]].ansible_facts.hostname }}"
   when:
     - rabbitmq_master_node is undefined

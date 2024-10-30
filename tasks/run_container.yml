@@ -1,10 +1,9 @@
 ---
 - name: Run container {{ rabbitmq_container_name }}
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     state: present
     project_name: rabbitmq
     definition:
-      version: '2'
       volumes:
         rabbitmq_data:
       services:
@@ -14,7 +13,7 @@
           hostname: "{{ rabbitmq_hostname }}"
           environment: "{{ rabbitmq_export_vars }}"
           volumes:
-            - rabbitmq_data:/bitnami/rabbitmq/mnesia
+            - "{{ rabbitmq_data }}:/bitnami/rabbitmq/mnesia"
           ports: "{{ rabbitmq_expose_ports }}"
           extra_hosts: "{{ rabbitmq_resolve_peers }}"
           healthcheck:

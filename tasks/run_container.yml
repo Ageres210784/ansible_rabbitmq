@@ -11,6 +11,7 @@
           image: "{{ rabbitmq_image_name }}"
           container_name: "{{ rabbitmq_container_name }}"
           hostname: "{{ rabbitmq_hostname }}"
+          restart: unless-stopped
           environment: "{{ rabbitmq_export_vars }}"
           volumes:
             - "{{ rabbitmq_data }}:/bitnami/rabbitmq/mnesia"

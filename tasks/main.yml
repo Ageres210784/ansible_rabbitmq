@@ -10,17 +10,23 @@
 #     - (rabbitmq_cluster_info is undefined) or (ansible_hostname == rabbitmq_master_node)
 #     - inventory_hostname not in rabbitmq_installed_nodes_list | default([])
 
-- name: Set rabbitmq_cluster_node_name for nodes
+- name: Get RABBITMQ_CLUSTER_NODE_NAME
+  set_fact:
+    rabbitmq_cluster_node_name: "{{ (rabbitmq_container_info.container.Config.Env | map('split', '=', 1) | community.general.dict).RABBITMQ_CLUSTER_NODE_NAME }}"
+  ignore_errors: true
+  when: inventory_hostname in rabbitmq_running_nodes_list | default([])
+
+- name: Set RABBITMQ_CLUSTER_NODE_NAME for new nodes
   set_fact:
     rabbitmq_cluster_node_name: rabbit@{{ hostvars[rabbitmq_master_node].rabbitmq_hostname | default(hostvars[rabbitmq_master_node].ansible_facts.hostname) }}
   when:
     - rabbitmq_master_node is defined
     - rabbitmq_master_node != inventory_hostname
+    - inventory_hostname not in rabbitmq_running_nodes_list | default([])
 
 - name: Run rabbitmq master
   import_tasks: run_container.yml
   when:
-    - inventory_hostname not in rabbitmq_installed_nodes_list | default([])
     - rabbitmq_master_node | default("") == inventory_hostname
 
 - name: Wait while master is running
@@ -35,5 +41,4 @@
 - name: Run rabbitmq
   import_tasks: run_container.yml
   when:
-    - inventory_hostname not in rabbitmq_installed_nodes_list | default([])
     - rabbitmq_master_node | default("") != inventory_hostname
